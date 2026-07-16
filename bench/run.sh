@@ -10,7 +10,13 @@ fi
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-cp bench/images/* "$work"/
+find bench/images -maxdepth 1 -type f \
+    \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.gif' -o -iname '*.svg' \) \
+    -exec cp {} "$work"/ \;
+if ! ls "$work"/* >/dev/null 2>&1; then
+    echo "No supported images (png/jpg/gif/svg) in bench/images/." >&2
+    exit 1
+fi
 
 cargo build --release --quiet
 

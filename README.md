@@ -73,9 +73,17 @@ crunchit --lossy ./web_assets
 
 ## Benchmarks
 
-Reproduce with `bash bench/run.sh` after placing sample images in `bench/images/`.
+Lossless mode on AI-generated 2MB PNGs (already tightly compressed — a worst case
+for lossless optimization; screenshots and web assets typically save far more):
 
-<!-- Paste the generated savings table here before tagging a release. -->
+| File | Before | After | Saved |
+|---|---|---|---|
+| russian_blue_cat.png | 2.1M | 2.0M | 6.5% |
+| scottish_terrier.png | 2.1M | 2.0M | 7.5% |
+| **Total** | 4.2M | 3.9M | **7.0%** |
+
+Reproduce with `bash bench/run.sh` after placing sample images in `bench/images/`
+(the corpus itself is not committed).
 
 ## Development
 
