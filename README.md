@@ -3,13 +3,17 @@
 [![CI](https://github.com/artisenalcode/crunchit/actions/workflows/ci.yml/badge.svg)](https://github.com/artisenalcode/crunchit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A fast, cross-platform CLI for optimizing images completely in pure Rust. It operates as a drop-in replacement for tools like ImageOptim but works straight from your terminal without requiring any external dependencies (`jpegoptim`, `gifsicle`, etc).
+A fast, cross-platform, Rust-based CLI for optimizing images. It operates as a drop-in replacement for tools like ImageOptim but works straight from your terminal — one static binary, no external tools required (`jpegoptim`, `gifsicle`, `cwebp`, etc).
 
 It natively optimizes the following formats completely in-process:
 - **PNG**: Lossless optimization powered by `oxipng`
 - **JPEG**: Pseudo-lossless (Quality 100) or lossy (Quality 85) optimization powered by the `image` crate
 - **GIF**: Lossless palette and frame compression via the `gif` crate
 - **SVG**: Vector graphics minification via the `oxvg` family
+- **WebP**: Lossless re-encode via the `image` crate
+
+It can also **generate next-gen web variants** alongside your originals — see
+[`--convert`](#generating-next-gen-variants) below.
 
 ## Installation
 
@@ -71,6 +75,26 @@ crunchit -t 16 ./my_images
 crunchit --lossy ./web_assets
 ```
 
+## Generating next-gen variants
+
+By default crunchit only optimizes in place and never creates files. Opt in with
+`--convert` to spawn modern-format siblings next to each original:
+
+```bash
+# photo.jpg → photo.webp, anim.gif → anim.webp (animated)
+crunchit --convert webp ./web_assets
+
+# Tune variant quality (default 80)
+crunchit --convert webp --webp-quality 70 ./web_assets
+```
+
+Conversion rules:
+- **PNG / JPEG → WebP** (lossy, quality `--webp-quality`, alpha preserved)
+- **Animated GIF → animated WebP** — typically a dramatic size reduction
+
+Re-runs are idempotent: a variant is only regenerated when its source is newer.
+AVIF variants and HEIC input are planned — see [ROADMAP.md](ROADMAP.md).
+
 ## Benchmarks
 
 Lossless mode on a mixed PNG corpus — screenshots (`ss_*`, the common web-asset case)
@@ -84,6 +108,15 @@ lossless optimization):
 | russian_blue_cat.png | 2.1M | 2.0M | 6.5% |
 | scottish_terrier.png | 2.1M | 2.0M | 7.5% |
 | **Total** | 11M | 8.6M | **15.8%** |
+
+Next-gen variant generation (`--convert webp`, default quality 80) on the same corpus:
+
+| Source | Optimized | WebP variant | Smaller by |
+|---|---|---|---|
+| ss_cat.png | 2.4M | 125K | 94.8% |
+| ss_dog.png | 2.4M | 126K | 94.7% |
+| russian_blue_cat.png | 2.0M | 104K | 94.7% |
+| scottish_terrier.png | 2.0M | 105K | 94.6% |
 
 Reproduce with `bash bench/run.sh` after placing sample images in `bench/images/`
 (the corpus itself is not committed).

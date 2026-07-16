@@ -45,3 +45,18 @@ pct=$(echo "scale=1; ($total_b - $total_a) * 100 / $total_b" | bc)
 printf '| **Total** | %s | %s | **%s%%** |\n' "$(numfmt --to=iec "$total_b")" "$(numfmt --to=iec "$total_a")" "$pct"
 echo
 echo "Wall time: ${elapsed}s"
+
+# Variant generation: source size vs generated .webp size (optimized sources).
+echo
+echo "| Source | Optimized | WebP variant | Smaller by |"
+echo "|---|---|---|---|"
+./target/release/crunchit --convert webp "$work" >/dev/null
+for f in "$work"/*.png "$work"/*.jpg "$work"/*.jpeg "$work"/*.gif; do
+    [ -f "$f" ] || continue
+    variant="${f%.*}.webp"
+    [ -f "$variant" ] || continue
+    s=$(stat -c%s "$f")
+    v=$(stat -c%s "$variant")
+    pct=$(echo "scale=1; ($s - $v) * 100 / $s" | bc)
+    printf '| %s | %s | %s | %s%% |\n' "$(basename "$f")" "$(numfmt --to=iec "$s")" "$(numfmt --to=iec "$v")" "$pct"
+done
