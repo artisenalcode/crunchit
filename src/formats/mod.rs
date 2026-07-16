@@ -2,6 +2,7 @@ mod gif;
 mod jpeg;
 mod png;
 mod svg;
+mod webp;
 
 use anyhow::Result;
 use std::path::Path;
@@ -20,6 +21,8 @@ pub fn process_file(path: &Path, lossy: bool) -> Result<u64> {
         gif::optimize(path, lossy)
     } else if ext.eq_ignore_ascii_case("svg") {
         svg::optimize(path, lossy)
+    } else if ext.eq_ignore_ascii_case("webp") {
+        webp::optimize(path, lossy)
     } else {
         Ok(0)
     }
@@ -32,4 +35,5 @@ pub fn is_supported_image(path: &Path) -> bool {
         || ext.eq_ignore_ascii_case("jpeg")
         || ext.eq_ignore_ascii_case("gif")
         || ext.eq_ignore_ascii_case("svg")
+        || ext.eq_ignore_ascii_case("webp")
 }

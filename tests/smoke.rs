@@ -62,6 +62,23 @@ fn jpeg_lossy_shrinks_and_stays_valid() {
 }
 
 #[test]
+fn webp_survives_optimization() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("test.webp");
+    let img = image::DynamicImage::ImageRgba8(gradient(64, 64));
+    img.save_with_format(&path, image::ImageFormat::WebP)
+        .unwrap();
+    let before = fs::metadata(&path).unwrap().len();
+
+    run_crunchit(dir.path(), false);
+
+    let after = fs::metadata(&path).unwrap().len();
+    assert!(after <= before, "webp grew: {before} -> {after}");
+    let img = image::open(&path).unwrap();
+    assert_eq!((img.width(), img.height()), (64, 64));
+}
+
+#[test]
 fn gif_survives_optimization() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("test.gif");
