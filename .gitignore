@@ -1,3 +1,4 @@
 /target
+.claude/
 bench/images/*
 !bench/images/README.txt
