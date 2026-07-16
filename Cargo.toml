@@ -35,3 +35,5 @@ tempfile = "3"
 
 [features]
 mozjpeg = []
+# ~15% less CPU for AVIF encoding; requires the nasm assembler at build time.
+asm = ["ravif/asm"]

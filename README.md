@@ -133,6 +133,11 @@ cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```
 
+The optional `asm` feature (`cargo build --release --features asm`) uses hand-written
+SIMD in the AVIF encoder for ~15% less CPU; it requires the `nasm` assembler at build
+time. Prebuilt release binaries ship with it enabled; the default build needs no
+assembler and compiles anywhere.
+
 Tagging `v*` builds and attaches release binaries (Linux x86_64, macOS arm64/x86_64) via GitHub Actions.
 
 ## License
