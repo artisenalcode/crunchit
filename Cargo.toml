@@ -1,0 +1,33 @@
+[package]
+name = "crunchit"
+version = "0.1.0"
+edition = "2024"
+description = "Fast, cross-platform CLI for optimizing PNG, JPEG, GIF and SVG images in pure Rust — no external tools required"
+license = "MIT"
+repository = "https://github.com/artisenalcode/crunchit"
+readme = "README.md"
+keywords = ["image", "optimization", "png", "jpeg", "svg"]
+categories = ["command-line-utilities", "multimedia::images"]
+
+[dependencies]
+anyhow = "1.0.102"
+clap = { version = "4.6.0", features = ["derive"] }
+gif = "0.14.1"
+human_bytes = "0.4.3"
+image = "0.25.10"
+indicatif = "0.18.4"
+oxipng = "10.1.0"
+oxvg_ast = { version = "0.0.5", features = ["roxmltree"] }
+oxvg_diagnostics = "0.0.1-alpha.1"
+oxvg_optimiser = "0.0.5"
+oxvg_parse = "0.0.5"
+oxvg_path = "0.0.5"
+oxvg_serialize = "0.0.5"
+rayon = "1.11.0"
+walkdir = "2.5.0"
+
+[dev-dependencies]
+tempfile = "3"
+
+[features]
+mozjpeg = []
