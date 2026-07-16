@@ -5,4 +5,6 @@ pub struct OptimizationStats {
     pub processed: AtomicUsize,
     pub saved_bytes: AtomicU64,
     pub errors: AtomicUsize,
+    pub variants: AtomicUsize,
+    pub variant_bytes: AtomicU64,
 }

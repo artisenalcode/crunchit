@@ -1,3 +1,4 @@
+mod convert;
 mod formats;
 mod stats;
 
@@ -25,11 +26,29 @@ struct Cli {
     /// Run in lossy mode (default is lossless)
     #[arg(long)]
     lossy: bool,
+
+    /// Generate next-gen variants next to originals (comma-separated; currently: webp)
+    #[arg(long, value_delimiter = ',')]
+    convert: Vec<String>,
+
+    /// Quality for generated WebP variants (0-100)
+    #[arg(long, default_value_t = 80.0)]
+    webp_quality: f32,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let start_time = Instant::now();
+
+    for format in &cli.convert {
+        if format != "webp" {
+            anyhow::bail!("unsupported --convert format: {format} (supported: webp)");
+        }
+    }
+    let convert_opts = convert::ConvertOptions {
+        webp: cli.convert.iter().any(|f| f == "webp"),
+        webp_quality: cli.webp_quality,
+    };
 
     if let Some(threads) = cli.threads {
         rayon::ThreadPoolBuilder::new()
@@ -78,6 +97,17 @@ fn main() -> Result<()> {
             }
         }
 
+        match convert::convert_file(file_path, &convert_opts) {
+            Ok(0) => {}
+            Ok(bytes) => {
+                stats.variants.fetch_add(1, Ordering::Relaxed);
+                stats.variant_bytes.fetch_add(bytes, Ordering::Relaxed);
+            }
+            Err(_e) => {
+                stats.errors.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+
         pb.inc(1);
     });
 
@@ -92,6 +122,15 @@ fn main() -> Result<()> {
     println!("\n--- Optimization Summary ---");
     println!("Processed files: {}", processed);
     println!("Space saved:     {}", saved_human);
+    let variants = stats.variants.load(Ordering::Relaxed);
+    if variants > 0 {
+        let variant_bytes = stats.variant_bytes.load(Ordering::Relaxed);
+        println!(
+            "Variants:        {} created ({})",
+            variants,
+            human_bytes::human_bytes(variant_bytes as f64)
+        );
+    }
     if errors > 0 {
         println!("Errors/Skipped:  {} (Failed to process file)", errors);
     }

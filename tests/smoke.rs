@@ -5,13 +5,26 @@ use std::path::Path;
 use std::process::Command;
 
 fn run_crunchit(dir: &Path, lossy: bool) {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_crunchit"));
-    cmd.arg(dir);
+    let mut args = vec![];
     if lossy {
-        cmd.arg("--lossy");
+        args.push("--lossy");
     }
-    let status = cmd.status().expect("failed to run crunchit");
+    run_crunchit_args(dir, &args);
+}
+
+fn run_crunchit_args(dir: &Path, args: &[&str]) {
+    let status = Command::new(env!("CARGO_BIN_EXE_crunchit"))
+        .arg(dir)
+        .args(args)
+        .status()
+        .expect("failed to run crunchit");
     assert!(status.success(), "crunchit exited with {status}");
+}
+
+fn assert_webp_magic(path: &Path) {
+    let bytes = fs::read(path).unwrap();
+    assert_eq!(&bytes[..4], b"RIFF", "missing RIFF header");
+    assert_eq!(&bytes[8..12], b"WEBP", "missing WEBP fourcc");
 }
 
 fn gradient(w: u32, h: u32) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
@@ -119,6 +132,55 @@ fn svg_shrinks_and_stays_svg() {
     let content = fs::read_to_string(&path).unwrap();
     assert!(content.contains("<svg"));
     assert!(!content.contains("a comment"));
+}
+
+#[test]
+fn convert_creates_webp_variant_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("photo.png");
+    gradient(128, 128).save(&source).unwrap();
+
+    run_crunchit_args(dir.path(), &["--convert", "webp"]);
+
+    let variant = dir.path().join("photo.webp");
+    assert!(variant.exists(), "webp variant not created");
+    assert_webp_magic(&variant);
+    let img = image::open(&variant).unwrap();
+    assert_eq!((img.width(), img.height()), (128, 128));
+
+    // Second run must be a no-op: the fresh variant is not regenerated.
+    let mtime = fs::metadata(&variant).unwrap().modified().unwrap();
+    run_crunchit_args(dir.path(), &["--convert", "webp"]);
+    assert_eq!(
+        mtime,
+        fs::metadata(&variant).unwrap().modified().unwrap(),
+        "variant was regenerated"
+    );
+}
+
+#[test]
+fn convert_animated_gif_to_animated_webp() {
+    use image::codecs::gif::GifEncoder;
+    use image::{Delay, Frame};
+
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("anim.gif");
+    let file = fs::File::create(&source).unwrap();
+    let mut encoder = GifEncoder::new(file);
+    let frames = (0..3u32).map(|i| {
+        let buf = ImageBuffer::from_fn(64, 64, |x, y| {
+            Rgba([(x + i * 40) as u8, y as u8, (i * 80) as u8, 255])
+        });
+        Frame::from_parts(buf, 0, 0, Delay::from_numer_denom_ms(100, 1))
+    });
+    encoder.encode_frames(frames).unwrap();
+    drop(encoder);
+
+    run_crunchit_args(dir.path(), &["--convert", "webp"]);
+
+    let variant = dir.path().join("anim.webp");
+    assert!(variant.exists(), "animated webp variant not created");
+    assert_webp_magic(&variant);
 }
 
 #[test]
