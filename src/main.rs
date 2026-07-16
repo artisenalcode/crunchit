@@ -27,13 +27,17 @@ struct Cli {
     #[arg(long)]
     lossy: bool,
 
-    /// Generate next-gen variants next to originals (comma-separated; currently: webp)
+    /// Generate next-gen variants next to originals (comma-separated: webp, avif)
     #[arg(long, value_delimiter = ',')]
     convert: Vec<String>,
 
     /// Quality for generated WebP variants (0-100)
     #[arg(long, default_value_t = 80.0)]
     webp_quality: f32,
+
+    /// Quality for generated AVIF variants (0-100). Encoding is CPU-heavy.
+    #[arg(long, default_value_t = 60.0)]
+    avif_quality: f32,
 }
 
 fn main() -> Result<()> {
@@ -41,13 +45,15 @@ fn main() -> Result<()> {
     let start_time = Instant::now();
 
     for format in &cli.convert {
-        if format != "webp" {
-            anyhow::bail!("unsupported --convert format: {format} (supported: webp)");
+        if format != "webp" && format != "avif" {
+            anyhow::bail!("unsupported --convert format: {format} (supported: webp, avif)");
         }
     }
     let convert_opts = convert::ConvertOptions {
         webp: cli.convert.iter().any(|f| f == "webp"),
         webp_quality: cli.webp_quality,
+        avif: cli.convert.iter().any(|f| f == "avif"),
+        avif_quality: cli.avif_quality,
     };
 
     if let Some(threads) = cli.threads {
@@ -98,9 +104,8 @@ fn main() -> Result<()> {
         }
 
         match convert::convert_file(file_path, &convert_opts) {
-            Ok(0) => {}
-            Ok(bytes) => {
-                stats.variants.fetch_add(1, Ordering::Relaxed);
+            Ok((created, bytes)) => {
+                stats.variants.fetch_add(created, Ordering::Relaxed);
                 stats.variant_bytes.fetch_add(bytes, Ordering::Relaxed);
             }
             Err(_e) => {

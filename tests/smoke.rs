@@ -159,6 +159,20 @@ fn convert_creates_webp_variant_once() {
 }
 
 #[test]
+fn convert_creates_avif_variant() {
+    let dir = tempfile::tempdir().unwrap();
+    let source = dir.path().join("photo.png");
+    gradient(64, 64).save(&source).unwrap();
+
+    run_crunchit_args(dir.path(), &["--convert", "avif"]);
+
+    let variant = dir.path().join("photo.avif");
+    assert!(variant.exists(), "avif variant not created");
+    let bytes = fs::read(&variant).unwrap();
+    assert_eq!(&bytes[4..12], b"ftypavif", "missing avif brand");
+}
+
+#[test]
 fn convert_animated_gif_to_animated_webp() {
     use image::codecs::gif::GifEncoder;
     use image::{Delay, Frame};

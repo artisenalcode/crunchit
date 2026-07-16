@@ -8,25 +8,62 @@ use std::path::Path;
 pub struct ConvertOptions {
     pub webp: bool,
     pub webp_quality: f32,
+    pub avif: bool,
+    pub avif_quality: f32,
 }
 
-/// Bytes written for newly created variants of `path`, or 0 if none were due.
-pub fn convert_file(path: &Path, opts: &ConvertOptions) -> Result<u64> {
+/// (variants created, bytes written) for `path`; (0, 0) if none were due.
+pub fn convert_file(path: &Path, opts: &ConvertOptions) -> Result<(usize, u64)> {
     let ext = path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_ascii_lowercase();
 
+    let mut created = 0;
     let mut bytes = 0;
+    let mut record = |written: u64| {
+        if written > 0 {
+            created += 1;
+            bytes += written;
+        }
+    };
+
     if opts.webp {
         match ext.as_str() {
-            "png" | "jpg" | "jpeg" => bytes += still_to_webp(path, opts.webp_quality)?,
-            "gif" => bytes += gif_to_animated_webp(path, opts.webp_quality)?,
+            "png" | "jpg" | "jpeg" => record(still_to_webp(path, opts.webp_quality)?),
+            "gif" => record(gif_to_animated_webp(path, opts.webp_quality)?),
             _ => {}
         }
     }
-    Ok(bytes)
+    if opts.avif && matches!(ext.as_str(), "png" | "jpg" | "jpeg") {
+        record(still_to_avif(path, opts.avif_quality)?);
+    }
+    Ok((created, bytes))
+}
+
+fn still_to_avif(path: &Path, quality: f32) -> Result<u64> {
+    let target = path.with_extension("avif");
+    if is_fresh(&target, path) {
+        return Ok(0);
+    }
+
+    let img = image::open(path)?;
+    let rgba = img.to_rgba8();
+    use rgb::FromSlice;
+    let pixels = ravif::Img::new(
+        rgba.as_raw().as_rgba(),
+        img.width() as usize,
+        img.height() as usize,
+    );
+    let encoded = ravif::Encoder::new()
+        .with_quality(quality)
+        .with_alpha_quality(quality)
+        .with_speed(6)
+        .encode_rgba(pixels)
+        .map_err(|e| anyhow!("avif encode: {e}"))?;
+    fs::write(&target, &encoded.avif_file)?;
+    Ok(encoded.avif_file.len() as u64)
 }
 
 /// A variant is fresh when it exists and is at least as new as its source.
