@@ -90,10 +90,14 @@ crunchit --convert webp --webp-quality 70 ./web_assets
 
 Conversion rules:
 - **PNG / JPEG → WebP** (lossy, quality `--webp-quality`, alpha preserved)
+- **PNG / JPEG → AVIF** (`--convert avif`, quality `--avif-quality`, default 60)
 - **Animated GIF → animated WebP** — typically a dramatic size reduction
 
+AVIF encoding is CPU-heavy (~13s for a 3MB PNG with the pure-Rust encoder) but pays for
+itself: the same screenshot that WebP takes to 125K, AVIF takes to **64K (97% smaller)**.
+
 Re-runs are idempotent: a variant is only regenerated when its source is newer.
-AVIF variants and HEIC input are planned — see [ROADMAP.md](ROADMAP.md).
+HEIC input is planned — see [ROADMAP.md](ROADMAP.md).
 
 ## Benchmarks
 
