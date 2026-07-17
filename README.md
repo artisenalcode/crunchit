@@ -17,8 +17,14 @@ It can also **generate next-gen web variants** alongside your originals — see
 
 ## Installation
 
-Prebuilt binaries for Linux and macOS are attached to each
-[GitHub release](https://github.com/artisenalcode/crunchit/releases).
+One-liner (Linux x86_64, macOS Intel/Apple Silicon — installs the latest
+[release binary](https://github.com/artisenalcode/crunchit/releases) to `~/.local/bin`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/artisenalcode/crunchit/main/install.sh | sh
+```
+
+Set `CRUNCHIT_INSTALL_DIR` to choose a different directory.
 
 Or compile from source and install to your local path:
 
