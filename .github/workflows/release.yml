@@ -48,7 +48,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+      - name: Generate checksums
+        run: sha256sum crunchit-*.tar.gz > SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
-          files: crunchit-*.tar.gz
+          files: |
+            crunchit-*.tar.gz
+            SHA256SUMS
           generate_release_notes: true

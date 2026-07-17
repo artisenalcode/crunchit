@@ -24,13 +24,27 @@ tag=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
     | grep '"tag_name"' | head -1 | cut -d'"' -f4)
 [ -n "$tag" ] || { echo "error: could not resolve latest release tag" >&2; exit 1; }
 
-url="https://github.com/$REPO/releases/download/$tag/crunchit-$tag-$target.tar.gz"
+asset="crunchit-$tag-$target.tar.gz"
+base="https://github.com/$REPO/releases/download/$tag"
 echo "Installing crunchit $tag ($target) to $INSTALL_DIR"
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-curl -fsSL "$url" -o "$tmp/crunchit.tar.gz"
-tar -xzf "$tmp/crunchit.tar.gz" -C "$tmp"
+curl -fsSL "$base/$asset" -o "$tmp/$asset"
+curl -fsSL "$base/SHA256SUMS" -o "$tmp/SHA256SUMS"
+
+if command -v sha256sum >/dev/null 2>&1; then
+    sha_cmd="sha256sum"
+else
+    sha_cmd="shasum -a 256"   # macOS
+fi
+(
+    cd "$tmp"
+    grep "  $asset\$" SHA256SUMS | $sha_cmd -c - >/dev/null 2>&1 \
+        || { echo "error: checksum verification failed for $asset" >&2; exit 1; }
+)
+echo "Checksum verified."
+tar -xzf "$tmp/$asset" -C "$tmp"
 
 mkdir -p "$INSTALL_DIR"
 install -m 755 "$tmp/crunchit" "$INSTALL_DIR/crunchit"
