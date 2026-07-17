@@ -56,3 +56,70 @@ jobs:
             crunchit-*.tar.gz
             SHA256SUMS
           generate_release_notes: true
+
+  # Regenerates Formula/crunchit.rb in artisenalcode/homebrew-tap on every release.
+  # Requires the TAP_GITHUB_TOKEN secret (fine-grained PAT, contents:write on the tap);
+  # skips quietly when it is not configured.
+  bump-tap:
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+    steps:
+      - name: Skip (no TAP_GITHUB_TOKEN configured)
+        if: env.TAP_TOKEN == ''
+        run: echo "TAP_GITHUB_TOKEN not set - skipping Homebrew formula bump"
+      - uses: actions/download-artifact@v4
+        if: env.TAP_TOKEN != ''
+        with:
+          merge-multiple: true
+      - name: Update formula
+        if: env.TAP_TOKEN != ''
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          sha_mac_arm=$(sha256sum "crunchit-$tag-aarch64-apple-darwin.tar.gz" | cut -d' ' -f1)
+          sha_mac_x86=$(sha256sum "crunchit-$tag-x86_64-apple-darwin.tar.gz" | cut -d' ' -f1)
+          sha_linux=$(sha256sum "crunchit-$tag-x86_64-unknown-linux-gnu.tar.gz" | cut -d' ' -f1)
+
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/artisenalcode/homebrew-tap.git" tap
+          base="https://github.com/artisenalcode/crunchit/releases/download/$tag"
+          cat > tap/Formula/crunchit.rb <<EOF
+          class Crunchit < Formula
+            desc "Fast CLI for optimizing images and generating WebP/AVIF variants"
+            homepage "https://github.com/artisenalcode/crunchit"
+            version "$version"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "$base/crunchit-$tag-aarch64-apple-darwin.tar.gz"
+                sha256 "$sha_mac_arm"
+              else
+                url "$base/crunchit-$tag-x86_64-apple-darwin.tar.gz"
+                sha256 "$sha_mac_x86"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.intel?
+                url "$base/crunchit-$tag-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "$sha_linux"
+              end
+            end
+
+            def install
+              bin.install "crunchit"
+            end
+
+            test do
+              assert_match "crunchit", shell_output("#{bin}/crunchit --version")
+            end
+          end
+          EOF
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/crunchit.rb
+          git diff --cached --quiet || git commit -m "crunchit $version"
+          git push
