@@ -41,7 +41,7 @@ fn heic_converts_to_jpeg_and_webp() {
 
     let status = Command::new(env!("CARGO_BIN_EXE_crunchit"))
         .arg(dir.path())
-        .args(["--convert", "webp"])
+        .args(["--convert", "webp,avif"])
         .status()
         .unwrap();
     assert!(status.success());
@@ -55,6 +55,11 @@ fn heic_converts_to_jpeg_and_webp() {
     assert!(webp.exists(), "webp sibling not created");
     let bytes = fs::read(&webp).unwrap();
     assert_eq!(&bytes[..4], b"RIFF");
+
+    let avif = dir.path().join("photo.avif");
+    assert!(avif.exists(), "avif sibling not created");
+    let bytes = fs::read(&avif).unwrap();
+    assert_eq!(&bytes[4..12], b"ftypavif", "missing avif brand");
 
     assert_eq!(fs::read(&heic).unwrap(), original, "heic original modified");
 }

@@ -53,6 +53,39 @@ pub fn convert_file(path: &Path, opts: &ConvertOptions) -> Result<(usize, u64)> 
     Ok((created, bytes))
 }
 
+#[cfg(feature = "heic")]
+fn avif_via_libheif(source: &Path, target: &Path, quality: f32) -> Result<u64> {
+    use libheif_rs::{
+        Channel, ColorSpace, CompressionFormat, EncoderQuality, HeifContext, LibHeif, RgbChroma,
+    };
+
+    let img = image::open(source)?;
+    let rgba = img.to_rgba8();
+    let (width, height) = (img.width(), img.height());
+
+    let mut heif_image = libheif_rs::Image::new(width, height, ColorSpace::Rgb(RgbChroma::Rgba))?;
+    heif_image.create_plane(Channel::Interleaved, width, height, 8)?;
+    let mut planes = heif_image.planes_mut();
+    let plane = planes
+        .interleaved
+        .as_mut()
+        .ok_or_else(|| anyhow!("libheif: no interleaved plane"))?;
+    let row_bytes = width as usize * 4;
+    let stride = plane.stride;
+    for (y, chunk) in rgba.as_raw().chunks_exact(row_bytes).enumerate() {
+        plane.data[y * stride..y * stride + row_bytes].copy_from_slice(chunk);
+    }
+
+    let lib_heif = LibHeif::new();
+    let mut encoder = lib_heif.encoder_for_format(CompressionFormat::Av1)?;
+    encoder.set_quality(EncoderQuality::Lossy(quality.clamp(0.0, 100.0) as u8))?;
+    let mut ctx = HeifContext::new()?;
+    ctx.encode_image(&heif_image, &mut encoder, None)?;
+    ctx.write_to_file(target.to_str().ok_or_else(|| anyhow!("non-utf8 path"))?)?;
+    let written = fs::metadata(target)?.len();
+    Ok(written)
+}
+
 /// HEIC is input-only: decode via libheif into an optimized JPEG sibling, which then
 /// feeds the standard JPEG conversion rules. The original is never touched.
 #[cfg(feature = "heic")]
@@ -100,6 +133,13 @@ fn still_to_avif(path: &Path, quality: f32) -> Result<u64> {
     let target = path.with_extension("avif");
     if is_fresh(&target, path) {
         return Ok(0);
+    }
+
+    // System libaom (via libheif) encodes ~20x faster than pure-Rust ravif;
+    // prefer it when compiled in, fall back to ravif if the plugin is missing.
+    #[cfg(feature = "heic")]
+    if let Ok(written) = avif_via_libheif(path, &target, quality) {
+        return Ok(written);
     }
 
     let img = image::open(path)?;

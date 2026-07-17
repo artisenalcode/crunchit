@@ -93,8 +93,12 @@ Conversion rules:
 - **PNG / JPEG → AVIF** (`--convert avif`, quality `--avif-quality`, default 60)
 - **Animated GIF → animated WebP** — typically a dramatic size reduction
 
-AVIF encoding is CPU-heavy (~13s for a 3MB PNG with the pure-Rust encoder) but pays for
-itself: the same screenshot that WebP takes to 125K, AVIF takes to **64K (97% smaller)**.
+AVIF encoding is tiered: the default build uses the pure-Rust `ravif` encoder
+(portable, zero dependencies, ~13s for a 3MB PNG), while builds with `--features heic`
+automatically use the system's libaom via libheif when available — **~20x faster
+(~0.6s for the same image)** — falling back to `ravif` if no AV1 plugin is installed.
+Either way it pays for itself: the same screenshot that WebP takes to 125K, AVIF
+takes to **~64–75K (97% smaller)**.
 
 Re-runs are idempotent: a variant is only regenerated when its source is newer.
 
