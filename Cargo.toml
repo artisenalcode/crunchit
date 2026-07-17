@@ -2,7 +2,7 @@
 name = "crunchit"
 version = "0.2.1"
 edition = "2024"
-description = "Fast, cross-platform CLI for optimizing PNG, JPEG, GIF and SVG images in pure Rust — no external tools required"
+description = "Fast image optimizer and WebP/AVIF converter — optimizes PNG/JPEG/GIF/SVG/WebP in place and generates variants up to 97% smaller. One static binary."
 license = "MIT"
 repository = "https://github.com/artisenalcode/crunchit"
 readme = "README.md"

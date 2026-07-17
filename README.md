@@ -3,7 +3,9 @@
 [![CI](https://github.com/artisenalcode/crunchit/actions/workflows/ci.yml/badge.svg)](https://github.com/artisenalcode/crunchit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A fast, cross-platform, Rust-based CLI for optimizing images. It operates as a drop-in replacement for tools like ImageOptim but works straight from your terminal — one static binary, no external tools required (`jpegoptim`, `gifsicle`, `cwebp`, etc).
+**Crunch every image. One binary.**
+
+The web-image pipeline in a single static Rust binary: optimize PNG, JPEG, GIF, SVG and WebP in place, spawn WebP/AVIF variants up to 97% smaller, ingest iPhone HEIC — ImageOptim for your terminal, with no external tools required (`jpegoptim`, `gifsicle`, `cwebp`, etc).
 
 It natively optimizes the following formats completely in-process:
 - **PNG**: Lossless optimization powered by `oxipng`
