@@ -38,6 +38,10 @@ struct Cli {
     /// Quality for generated AVIF variants (0-100). Encoding is CPU-heavy.
     #[arg(long, default_value_t = 60.0)]
     avif_quality: f32,
+
+    /// Speed preset for the pure-Rust AVIF encoder: 1 (slowest, smallest) to 10 (fastest)
+    #[arg(long, default_value_t = 6, value_parser = clap::value_parser!(u8).range(1..=10))]
+    avif_speed: u8,
 }
 
 fn main() -> Result<()> {
@@ -54,6 +58,7 @@ fn main() -> Result<()> {
         webp_quality: cli.webp_quality,
         avif: cli.convert.iter().any(|f| f == "avif"),
         avif_quality: cli.avif_quality,
+        avif_speed: cli.avif_speed,
     };
 
     if let Some(threads) = cli.threads {

@@ -10,6 +10,7 @@ pub struct ConvertOptions {
     pub webp_quality: f32,
     pub avif: bool,
     pub avif_quality: f32,
+    pub avif_speed: u8,
 }
 
 /// (variants created, bytes written) for `path`; (0, 0) if none were due.
@@ -37,7 +38,7 @@ pub fn convert_file(path: &Path, opts: &ConvertOptions) -> Result<(usize, u64)> 
         }
     }
     if opts.avif && matches!(ext.as_str(), "png" | "jpg" | "jpeg") {
-        record(still_to_avif(path, opts.avif_quality)?);
+        record(still_to_avif(path, opts.avif_quality, opts.avif_speed)?);
     }
     #[cfg(feature = "heic")]
     if matches!(ext.as_str(), "heic" | "heif") {
@@ -47,7 +48,11 @@ pub fn convert_file(path: &Path, opts: &ConvertOptions) -> Result<(usize, u64)> 
             record(still_to_webp(&jpeg_path, opts.webp_quality)?);
         }
         if opts.avif {
-            record(still_to_avif(&jpeg_path, opts.avif_quality)?);
+            record(still_to_avif(
+                &jpeg_path,
+                opts.avif_quality,
+                opts.avif_speed,
+            )?);
         }
     }
     Ok((created, bytes))
@@ -129,7 +134,7 @@ fn heic_to_jpeg(path: &Path) -> Result<(std::path::PathBuf, u64)> {
     Ok((target, written))
 }
 
-fn still_to_avif(path: &Path, quality: f32) -> Result<u64> {
+fn still_to_avif(path: &Path, quality: f32, speed: u8) -> Result<u64> {
     let target = path.with_extension("avif");
     if is_fresh(&target, path) {
         return Ok(0);
@@ -153,7 +158,7 @@ fn still_to_avif(path: &Path, quality: f32) -> Result<u64> {
     let encoded = ravif::Encoder::new()
         .with_quality(quality)
         .with_alpha_quality(quality)
-        .with_speed(6)
+        .with_speed(speed)
         .encode_rgba(pixels)
         .map_err(|e| anyhow!("avif encode: {e}"))?;
     fs::write(&target, &encoded.avif_file)?;

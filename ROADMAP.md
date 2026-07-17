@@ -94,6 +94,30 @@ Release v0.1.0 as-is. Everything below lands behind new flags in v0.2+.
 - **Semantics:** first release where crunchit *creates* files; idempotency + collision
   rules above are the guard against variant explosions on re-runs.
 
+## Pure-Rust AVIF findings (2026-07-17)
+
+Measured on a 3.1MB screenshot PNG (`--convert avif`, q60, 24-thread machine):
+
+| Encoder path | CPU time | Notes |
+|---|---|---|
+| libaom via libheif (`--features heic`) | ~1.2s | mature C encoder, SIMD baked into distro build |
+| ravif/rav1e, speed 6, no asm | ~54s | current pure-Rust default |
+| ravif/rav1e, speed 10, no asm | ~50s | preset barely helps; bottleneck is scalar kernels |
+| ravif/rav1e, speed 6, `--features asm` | ~46s | rav1e's 53 nasm .asm kernels, ~15% |
+
+Where the gap lives (from source): `ravif` is a ~1k-line wrapper (quality→quantizer
+mapping + AVIF container serialization, already pure Rust). All compute is `rav1e`,
+whose hot kernels (SAD/SATD distortion, transforms, CDEF, motion comp) are hand-written
+x86 assembly in `src/x86/*.asm` gated behind `cfg(nasm_x86_64)` — the no-asm build falls
+back to scalar Rust, and even the asm build trails libaom's encoder search heuristics.
+
+Realistic "fully Rust" paths, in order of sanity:
+1. **Ship the tiering we have** — ravif everywhere, libaom when `heic` is on. Done.
+2. **Contribute portable-SIMD kernels upstream to rav1e** (e.g. one SATD kernel in
+   `std::simd` replacing a scalar fallback) — genuine OSS contribution, bounded scope,
+   exactly the kind of public Rust systems work worth a CV line. Weekend-sized per kernel.
+3. **Write an AV1 encoder ourselves** — multi-year; not a crunchit feature. No.
+
 ## Open questions
 
 - Default conversion qualities (WebP 80 / AVIF 60 proposed — validate on the bench corpus).
