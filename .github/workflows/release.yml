@@ -36,7 +36,7 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           tar czf crunchit-${{ github.ref_name }}-${{ matrix.target }}.tar.gz crunchit
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: crunchit-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/crunchit-*.tar.gz
@@ -45,7 +45,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           merge-multiple: true
       - name: Generate checksums
@@ -69,7 +69,7 @@ jobs:
       - name: Skip (no TAP_GITHUB_TOKEN configured)
         if: env.TAP_TOKEN == ''
         run: echo "TAP_GITHUB_TOKEN not set - skipping Homebrew formula bump"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         if: env.TAP_TOKEN != ''
         with:
           merge-multiple: true
