@@ -17,7 +17,13 @@ It can also **generate next-gen web variants** alongside your originals — see
 
 ## Installation
 
-One-liner (Linux x86_64, macOS Intel/Apple Silicon — installs the latest
+Homebrew (macOS Intel/Apple Silicon, Linux x86_64):
+
+```bash
+brew install artisenalcode/tap/crunchit
+```
+
+Or the one-liner (Linux x86_64, macOS Intel/Apple Silicon — installs the latest
 [release binary](https://github.com/artisenalcode/crunchit/releases) to `~/.local/bin`):
 
 ```bash

@@ -17,7 +17,19 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - run: sudo apt-get update && sudo apt-get install -y nasm
+      - run: >
+          sudo apt-get update && sudo apt-get install -y nasm
+          libheif-dev libheif-examples libclang-dev
+          libheif-plugin-aomenc libheif-plugin-aomdec libheif-plugin-libde265
       - run: cargo fmt --check
-      - run: cargo clippy --all-targets --features asm -- -D warnings
+      - run: cargo clippy --all-targets --features asm,heic -- -D warnings
+      - run: cargo test --features asm,heic
+
+  check-macos:
+    runs-on: macos-latest # Apple Silicon
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: brew install nasm
       - run: cargo test --features asm
