@@ -1,5 +1,8 @@
 # Roadmap — modern web formats & conversion matrix
 
+> Status 2026-07-17: Phases 1–3 shipped (WebP optimize + `--convert webp,avif`,
+> animated GIF → WebP, feature-gated HEIC input). Remaining: open questions below.
+
 ## Goal
 
 Extend crunchit from an in-place optimizer for legacy formats (PNG/JPEG/GIF/SVG) into a

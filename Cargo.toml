@@ -16,6 +16,7 @@ gif = "0.14.1"
 human_bytes = "0.4.3"
 image = "0.25.10"
 indicatif = "0.18.4"
+libheif-rs = { version = "0.22", optional = true }
 oxipng = "10.1.0"
 oxvg_ast = { version = "0.0.5", features = ["roxmltree"] }
 oxvg_diagnostics = "0.0.1-alpha.1"
@@ -37,3 +38,9 @@ tempfile = "3"
 mozjpeg = []
 # ~15% less CPU for AVIF encoding; requires the nasm assembler at build time.
 asm = ["ravif/asm"]
+# HEIC/HEIF input (iPhone photos); requires system libheif at build and run time.
+heic = ["dep:libheif-rs"]
+
+[[test]]
+name = "heic"
+required-features = ["heic"]

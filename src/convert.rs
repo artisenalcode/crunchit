@@ -39,7 +39,61 @@ pub fn convert_file(path: &Path, opts: &ConvertOptions) -> Result<(usize, u64)> 
     if opts.avif && matches!(ext.as_str(), "png" | "jpg" | "jpeg") {
         record(still_to_avif(path, opts.avif_quality)?);
     }
+    #[cfg(feature = "heic")]
+    if matches!(ext.as_str(), "heic" | "heif") {
+        let (jpeg_path, written) = heic_to_jpeg(path)?;
+        record(written);
+        if opts.webp {
+            record(still_to_webp(&jpeg_path, opts.webp_quality)?);
+        }
+        if opts.avif {
+            record(still_to_avif(&jpeg_path, opts.avif_quality)?);
+        }
+    }
     Ok((created, bytes))
+}
+
+/// HEIC is input-only: decode via libheif into an optimized JPEG sibling, which then
+/// feeds the standard JPEG conversion rules. The original is never touched.
+#[cfg(feature = "heic")]
+fn heic_to_jpeg(path: &Path) -> Result<(std::path::PathBuf, u64)> {
+    let target = path.with_extension("jpg");
+    if is_fresh(&target, path) {
+        return Ok((target, 0));
+    }
+
+    let lib_heif = libheif_rs::LibHeif::new();
+    let ctx = libheif_rs::HeifContext::read_from_file(
+        path.to_str().ok_or_else(|| anyhow!("non-utf8 path"))?,
+    )?;
+    let handle = ctx.primary_image_handle()?;
+    let decoded = lib_heif.decode(
+        &handle,
+        libheif_rs::ColorSpace::Rgb(libheif_rs::RgbChroma::Rgba),
+        None,
+    )?;
+    let plane = decoded
+        .planes()
+        .interleaved
+        .ok_or_else(|| anyhow!("heic: no interleaved plane"))?;
+
+    // libheif rows are stride-padded; repack to tight RGBA.
+    let (width, height) = (plane.width, plane.height);
+    let row_bytes = width as usize * 4;
+    let mut rgba = Vec::with_capacity(row_bytes * height as usize);
+    for row in 0..height as usize {
+        let start = row * plane.stride;
+        rgba.extend_from_slice(&plane.data[start..start + row_bytes]);
+    }
+    let buffer = image::RgbaImage::from_raw(width, height, rgba)
+        .ok_or_else(|| anyhow!("heic: decoded size mismatch"))?;
+
+    let mut file = fs::File::create(&target)?;
+    let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut file, 85);
+    encoder.encode_image(&image::DynamicImage::ImageRgba8(buffer).to_rgb8())?;
+    drop(file);
+    let written = fs::metadata(&target)?.len();
+    Ok((target, written))
 }
 
 fn still_to_avif(path: &Path, quality: f32) -> Result<u64> {

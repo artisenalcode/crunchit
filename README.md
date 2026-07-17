@@ -97,7 +97,18 @@ AVIF encoding is CPU-heavy (~13s for a 3MB PNG with the pure-Rust encoder) but p
 itself: the same screenshot that WebP takes to 125K, AVIF takes to **64K (97% smaller)**.
 
 Re-runs are idempotent: a variant is only regenerated when its source is newer.
-HEIC input is planned — see [ROADMAP.md](ROADMAP.md).
+
+### HEIC input (optional feature)
+
+Built with `--features heic` (requires system `libheif` ≥ 1.17 at build and run time),
+crunchit also accepts iPhone photos as **input**: `photo.heic` → optimized `photo.jpg`,
+which then feeds the standard rules (`--convert webp,avif` gives you the web variants
+too). HEIC originals are never modified or deleted. This feature is off by default and
+not included in prebuilt binaries — build from source to enable it:
+
+```bash
+cargo install crunchit --features heic
+```
 
 ## Benchmarks
 

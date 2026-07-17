@@ -30,6 +30,10 @@ pub fn process_file(path: &Path, lossy: bool) -> Result<u64> {
 
 pub fn is_supported_image(path: &Path) -> bool {
     let ext = ext(path);
+    #[cfg(feature = "heic")]
+    if ext.eq_ignore_ascii_case("heic") || ext.eq_ignore_ascii_case("heif") {
+        return true;
+    }
     ext.eq_ignore_ascii_case("png")
         || ext.eq_ignore_ascii_case("jpg")
         || ext.eq_ignore_ascii_case("jpeg")
